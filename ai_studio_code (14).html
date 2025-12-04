@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanoi Quiz 2025: Video Edition</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --gold: #ffd700;
+            --text-main: #2d3436;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.9);
+            --glass-shadow: 0 10px 40px 0 rgba(31, 38, 135, 0.15);
+            --danger: #d63031;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: #f5f6fa;
+            color: var(--text-main);
+            font-family: 'Open Sans', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 3D Background */
+        #canvas-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+        /* UI Container for Quiz */
+        .quiz-wrapper {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            width: 90%;
+            max-width: 600px;
+            display: none;
+            align-items: center;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: var(--glass-shadow);
+            width: 100%;
+        }
+
+        /* --- START SCREEN (GIFT BOXES) --- */
+        #start-screen {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            text-align: center;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .gift-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 40px;
+            text-shadow: 0 5px 15px rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.9);
+            padding: 15px 30px;
+            border-radius: 15px;
+            display: inline-block;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            text-transform: uppercase;
+        }
+
+        .gift-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .gift-box {
+            width: 100px; height: 100px;
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            border-radius: 15px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2rem; color: white;
+            font-family: 'Montserrat', sans-serif; font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(108, 92, 231, 0.4);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            border: 3px solid white;
+            pointer-events: auto;
+        }
+
+        .gift-box:hover {
+            transform: translateY(-10px) scale(1.1);
+            box-shadow: 0 20px 30px rgba(108, 92, 231, 0.6);
+            background: linear-gradient(135deg, #ffd700, #ff9f43);
+            border-color: #fff;
+        }
+
+        /* Class to hide selected box */
+        .gift-box.hidden {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* --- VIDEO MODAL (Large) --- */
+        #video-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 20000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        
+        #video-player {
+            width: 95%;          
+            max-width: 1000px;   
+            height: auto;
+            max-height: 85vh;    
+            border-radius: 15px;
+            box-shadow: 0 0 50px rgba(255, 255, 255, 0.3);
+            border: 2px solid #fff;
+            background: #000;
+        }
+
+        /* UI Elements */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid rgba(0,0,0,0.05); padding-bottom: 15px; }
+        .title { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.5rem; color: var(--primary); }
+        .badge { background: rgba(108, 92, 231, 0.1); color: var(--primary); padding: 5px 12px; border-radius: 15px; font-weight: 700; }
+        .question { font-size: 1.3rem; margin-bottom: 30px; line-height: 1.5; font-weight: 700; min-height: 60px; }
+        .options { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .opt-btn { background: #fff; border: 2px solid #e1e1e1; padding: 18px 25px; border-radius: 12px; color: #636e72; font-size: 1.1rem; cursor: pointer; text-align: left; transition: all 0.2s ease; }
+        .opt-btn:hover:not(.disabled) { border-color: var(--primary); background: #fdfdff; transform: translateX(5px); }
+        .opt-btn.selected { border-color: #fdcb6e; background: #fffbf0; color: #d35400; font-weight: 600; }
+        .action-area { margin-top: 35px; display: flex; justify-content: flex-end; align-items: center; }
+        .btn-main { padding: 14px 35px; border-radius: 50px; border: none; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1rem; text-transform: uppercase; cursor: pointer; transition: 0.3s; color: #fff; }
+        #submit-btn { background: linear-gradient(135deg, #fdcb6e, #e17055); display: block; opacity: 0.5; pointer-events: none; }
+        #submit-btn.ready { opacity: 1; pointer-events: all; transform: scale(1.05); }
+        .result-screen { display: none; text-align: center; padding: 20px; }
+        .score-big { font-size: 5rem; font-family: 'Montserrat', sans-serif; font-weight: 800; color: var(--gold); margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Background -->
+    <div id="canvas-container"></div>
+
+    <!-- START SCREEN: GIFT BOXES -->
+    <div id="start-screen">
+        <div class="gift-title">Select a Mystery Box</div>
+        <div class="gift-container">
+            <div class="gift-box" id="box-1" onclick="startGame(1)">1</div>
+            <div class="gift-box" id="box-2" onclick="startGame(2)">2</div>
+            <div class="gift-box" id="box-3" onclick="startGame(3)">3</div>
+            <div class="gift-box" id="box-4" onclick="startGame(4)">4</div>
+            <div class="gift-box" id="box-5" onclick="startGame(5)">5</div>
+        </div>
+    </div>
+
+    <!-- QUIZ UI -->
+    <div class="quiz-wrapper" id="quiz-wrapper">
+        <div class="glass-card">
+            <div id="quiz-ui">
+                <div class="header">
+                    <div class="title">Hanoi Quiz</div>
+                    <div class="badge">Box: <span id="q-current">1</span></div>
+                </div>
+                <div class="question" id="question-text">Loading...</div>
+                <div class="options" id="options-container"></div>
+                <div class="action-area">
+                    <button id="submit-btn" class="btn-main" onclick="submitAnswer()">Submit</button>
+                </div>
+            </div>
+            
+            <!-- Result Screen -->
+            <div id="result-ui" class="result-screen">
+                <i class="fas fa-gem" style="font-size: 4rem; color: #ffd700; margin-bottom: 10px;"></i>
+                <h2 class="title" style="color:#ffd700;">Luxury Complete</h2>
+                <div class="score-big" id="final-score">0/5</div>
+                <button class="btn-main" style="background: linear-gradient(135deg, #6c5ce7, #a29bfe);" onclick="location.reload()">Replay</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIDEO MODAL -->
+    <div id="video-modal">
+        <video id="video-player">
+            <source src="" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    <script>
+        // ORIGINAL ENGLISH DATA
+        const quizData = [
+            { question: "This city has the Old Quarter and Hoan Kiem Lake. What city is it?", options: ["Ho Chi Minh City", "Da Nang", "Hue", "Hanoi"], correct: 3 },
+            { question: "Which traditional dish is Hanoi most famous for in 2025?", options: ["Banh xeo", "Pho", "Bun bo Hue", "Mi Quang"], correct: 1 },
+            { question: "Where is Hanoi located?", options: ["In the South", "In the Central region", "In the North of Vietnam", "Outside Vietnam"], correct: 2 },
+            { question: "What was Hanoi like in the past?", options: ["Crowded & modern", "Quieter & peaceful", "Full of skyscrapers", "Industrial area"], correct: 1 },
+            { question: "A negative effect of urbanisation in Hanoi is...?", options: ["More jobs", "Better hospitals", "Loss of old culture", "Modern roads"], correct: 2 }
+        ];
+
+        // --- CONFIGURE YOUR VIDEO LINKS HERE ---
+        const VIDEO_CORRECT = "yes.mp4"; 
+        const VIDEO_WRONG = "no.mp4";
+
+        let currentQuestionIndex = 0;
+        let totalScore = 0;
+        let selectedOptionIdx = -1;
+        let openedBoxesCount = 0; 
+        let currentBoxId = 0;
+        let lastAnswerWasCorrect = false; // Variable to check if last answer was correct
+
+        const startScreen = document.getElementById('start-screen');
+        const quizWrapper = document.getElementById('quiz-wrapper');
+        const uiQuiz = document.getElementById('quiz-ui');
+        const uiResult = document.getElementById('result-ui');
+        const qText = document.getElementById('question-text');
+        const optContainer = document.getElementById('options-container');
+        const qCurrent = document.getElementById('q-current');
+        const btnSubmit = document.getElementById('submit-btn');
+        const videoModal = document.getElementById('video-modal');
+        const videoPlayer = document.getElementById('video-player');
+
+        // EVENT: AUTO CLOSE VIDEO WHEN ENDED
+        videoPlayer.onended = function() {
+            closeVideoAndReturn();
+        };
+
+        // START GAME
+        function startGame(boxNum) {
+            currentBoxId = boxNum; 
+            currentQuestionIndex = boxNum - 1; // Map Box 1 to Index 0
+
+            // Hide start screen, show quiz
+            startScreen.style.display = 'none';
+            quizWrapper.style.display = 'block'; 
+            
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            selectedOptionIdx = -1;
+            btnSubmit.classList.remove('ready');
+            uiQuiz.style.display = 'block';
+            
+            const data = quizData[currentQuestionIndex];
+            qText.innerText = data.question;
+            qCurrent.innerText = currentBoxId; 
+            
+            optContainer.innerHTML = '';
+            data.options.forEach((opt, idx) => {
+                const btn = document.createElement('div');
+                btn.className = 'opt-btn';
+                btn.innerHTML = `<span style="font-weight:800; color:var(--primary); margin-right:15px;">${String.fromCharCode(65+idx)}</span> ${opt}`;
+                btn.onclick = () => selectOption(idx);
+                btn.id = `opt-${idx}`;
+                optContainer.appendChild(btn);
+            });
+        }
+
+        function selectOption(idx) {
+            selectedOptionIdx = idx;
+            const allBtns = document.querySelectorAll('.opt-btn');
+            allBtns.forEach((b, i) => {
+                if (i === idx) b.classList.add('selected');
+                else b.classList.remove('selected');
+            });
+            btnSubmit.classList.add('ready');
+        }
+
+        function submitAnswer() {
+            if(selectedOptionIdx === -1) return;
+            
+            const correctIdx = quizData[currentQuestionIndex].correct;
+            let isCorrect = (selectedOptionIdx === correctIdx);
+            
+            // Save state so we know what to do after video ends
+            lastAnswerWasCorrect = isCorrect;
+
+            if (isCorrect) {
+                totalScore++;
+            }
+
+            // SHOW VIDEO RESULT
+            showVideoResult(isCorrect);
+        }
+
+        function showVideoResult(isCorrect) {
+            quizWrapper.style.display = 'none'; // Hide quiz temporarily
+            videoModal.style.display = 'flex';
+            
+            if(isCorrect) {
+                videoPlayer.src = VIDEO_CORRECT;
+            } else {
+                videoPlayer.src = VIDEO_WRONG;
+            }
+            
+            videoPlayer.load();
+            videoPlayer.play().catch(e => console.log("Auto-play blocked:", e));
+        }
+
+        function closeVideoAndReturn() {
+            // 1. Close modal
+            videoModal.style.display = 'none';
+            videoPlayer.pause();
+            videoPlayer.currentTime = 0;
+
+            // 2. CHECK LOGIC: CORRECT vs WRONG
+            if (lastAnswerWasCorrect) {
+                // --- CASE: CORRECT ANSWER ---
+                // Hide the used box and go back to start screen or finish
+                const boxElement = document.getElementById(`box-${currentBoxId}`);
+                if(boxElement) {
+                    boxElement.classList.add('hidden');
+                }
+                openedBoxesCount++;
+
+                // Check if all boxes are opened
+                if (openedBoxesCount >= 5) {
+                    quizWrapper.style.display = 'block';
+                    uiQuiz.style.display = 'none';       
+                    uiResult.style.display = 'block';    
+                    document.getElementById('final-score').innerText = totalScore + "/5";
+                } else {
+                    // Return to start screen
+                    startScreen.style.display = 'block';
+                }
+            } else {
+                // --- CASE: WRONG ANSWER ---
+                // Stay on the quiz wrapper, reset selection to let user choose again
+                quizWrapper.style.display = 'block'; // Show quiz again
+                
+                // Optional: Clear the previous selection to indicate retry
+                const allBtns = document.querySelectorAll('.opt-btn');
+                allBtns.forEach(b => b.classList.remove('selected'));
+                selectedOptionIdx = -1;
+                btnSubmit.classList.remove('ready');
+            }
+        }
+
+        // --- THREE.JS BACKGROUND ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf5f6fa);
+        scene.fog = new THREE.Fog(0xf5f6fa, 10, 60);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 25;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        const group = new THREE.Group();
+        scene.add(group);
+        const geometries = [];
+        const normalMat = new THREE.MeshPhysicalMaterial({ color: 0x6c5ce7, metalness: 0.1, roughness: 0.1, transparent: true, opacity: 0.8 });
+
+        for (let i = 0; i < 120; i++) {
+            const size = Math.random() * 1.5 + 0.5;
+            let geometry;
+            if(Math.random() < 0.5) geometry = new THREE.IcosahedronGeometry(size, 0);
+            else geometry = new THREE.OctahedronGeometry(size, 0);
+            const mesh = new THREE.Mesh(geometry, normalMat.clone());
+            mesh.position.set((Math.random()-0.5)*60, (Math.random()-0.5)*40, (Math.random()-0.5)*30-10);
+            mesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+            mesh.userData = { rotSpeedX: (Math.random()-0.5)*0.02, rotSpeedY: (Math.random()-0.5)*0.02, initialY: mesh.position.y };
+            group.add(mesh);
+            geometries.push(mesh);
+        }
+
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (e) => { mouseX = (e.clientX/window.innerWidth)*2-1; mouseY = -(e.clientY/window.innerHeight)*2+1; });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.001;
+            geometries.forEach((mesh, i) => {
+                mesh.rotation.x += mesh.userData.rotSpeedX;
+                mesh.rotation.y += mesh.userData.rotSpeedY;
+                mesh.position.y = mesh.userData.initialY + Math.sin(time + i) * 2;
+            });
+            group.rotation.x += (mouseY*0.1 - group.rotation.x)*0.05;
+            group.rotation.y += (mouseX*0.1 - group.rotation.y)*0.05;
+            renderer.render(scene, camera);
+        }
+        animate();
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+    </script>
+</body>
+</html>
